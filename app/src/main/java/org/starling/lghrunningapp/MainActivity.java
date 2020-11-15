@@ -35,6 +35,9 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String MESSENGER_INTENT_KEY = "msg-intent-key";
     public static final String TAG = MainActivity.class.getSimpleName();
+    private static final int RUNNING = 1;
+    private static final int STOPPED = 0;
+    private static final int PAUSED = 2;
     private IncomingMessageHandler mHandler;
 
 
@@ -42,10 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private TextView textView;
     private WebView webview1;
 
+    private int activityState;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getSupportActionBar().hide();
+        activityState = MainActivity.STOPPED;
 
         setContentView(R.layout.activity_main);
 
@@ -73,8 +79,6 @@ public class MainActivity extends AppCompatActivity {
         //ApplicationClass.context = this;
 
         webview1.addJavascriptInterface(this, "Android");
-
-
     }
 
     public void clickTextView(View v){
@@ -134,11 +138,12 @@ public class MainActivity extends AppCompatActivity {
                     }
 
 
-                    textView.setText("" + LocationUpdatesComponent.locations.size() + "\n"  + Arrays.toString(difs));
+                    textView.setText("" + LocationUpdatesComponent.size() + "\n"  + Arrays.toString(difs));
 
                     locationMsg.setText("LAT :  " + loc.getLatitude() + "\nLNG : " + loc.getLongitude() + "\n\n" + loc.toString() + " \n\n\nLast updated- " + currentDateTimeString);
-
-                    onLocationChanged(loc);
+                    if (MainActivity.RUNNING == activityState) {
+                        onLocationChanged(loc);
+                    }
                     break;
             }
         }
@@ -213,8 +218,8 @@ public class MainActivity extends AppCompatActivity {
         RoutePoint rp = new RoutePoint(
                 round(location.getLatitude(),6),
                 round(location.getLongitude(),6),
-                location.getTime());
-        rp.nrOfPoints = LocationUpdatesComponent.locations.size();//getNrofPoints();
+                location.getTime(), location.getSpeed());
+        rp.nrOfPoints = LocationUpdatesComponent.size();//getNrofPoints();
         Gson gson = new Gson();
         String json = gson.toJson(rp);
         String url = "javascript:onLocationChanged(" + json + ")";
@@ -229,4 +234,39 @@ public class MainActivity extends AppCompatActivity {
         Intent i=new Intent(intentName);
         this.stopService(i);
     }
+
+    private void toast(String s) {
+        Toast.makeText(this, s, Toast.LENGTH_LONG).show();
+
+    }
+
+    public void start(){
+        activityState = MainActivity.RUNNING;
+        LocationUpdatesComponent.reset();
+        toast("started");
+    }
+
+    public void stop(){
+        toast("stopped");
+        activityState = MainActivity.STOPPED;
+    }
+
+    public void pause(){
+        toast("paused");
+        activityState = MainActivity.PAUSED;
+    }
+
+    public void reload(){
+        webview1.clearCache(true);
+        webview1.loadUrl("https://loopgroephouten.nl/lghrun");
+   }
+
+   public String getRouteJson(){
+        String result = LocationUpdatesComponent.getRouteJson();
+        return result;
+    }
+
+   public void exit(){
+        finish();
+   }
 }

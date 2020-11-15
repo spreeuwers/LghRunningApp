@@ -13,6 +13,7 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +55,7 @@ public class LocationUpdatesComponent {
      */
     private Location mLocation;
 
-    public static List<Location> locations = new ArrayList<>();
+    private static List<Location> locations = new ArrayList<>();
     public static List<Long> timestamps = new ArrayList<>();
 
 
@@ -63,6 +64,33 @@ public class LocationUpdatesComponent {
     public LocationUpdatesComponent(ILocationProvider iLocationProvider) {
         this.iLocationProvider = iLocationProvider;
     }
+
+    public static void appendLocation (Location l){
+        locations.add(l);
+    }
+
+    public static void reset(){
+        locations.clear();
+    }
+
+    public static int size(){
+        return locations.size();
+    }
+
+
+    public static String getRouteJson(){
+
+        RoutePoint[] routePoints = new RoutePoint[locations.size()];
+        for (int i = 0; i < locations.size(); i++) {
+            Location l = locations.get(i);
+            routePoints[i] = new RoutePoint(l.getLatitude(), l.getLongitude(), l.getTime(),l.getSpeed());
+        }
+        Gson gson = new Gson();
+        String json = gson.toJson(routePoints);
+        return json;
+    }
+
+
 
     /**
      * create first time to initialize the location components
