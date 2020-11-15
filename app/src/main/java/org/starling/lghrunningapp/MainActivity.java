@@ -20,7 +20,11 @@ import android.webkit.WebView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -41,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getSupportActionBar().hide();
+
         setContentView(R.layout.activity_main);
 
         textView = findViewById(R.id.textView2);
@@ -69,6 +75,10 @@ public class MainActivity extends AppCompatActivity {
         webview1.addJavascriptInterface(this, "Android");
 
 
+    }
+
+    public void clickTextView(View v){
+        v.setVisibility(View.INVISIBLE);
     }
 
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
@@ -105,7 +115,8 @@ public class MainActivity extends AppCompatActivity {
 
             switch (msg.what) {
                 case LocationUpdatesService.LOCATION_MESSAGE:
-                    Location obj = (Location) msg.obj;
+                    Location loc = (Location) msg.obj;
+
                     String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
 
                     Object[] timestamps = LocationUpdatesComponent.timestamps.toArray();
@@ -125,7 +136,9 @@ public class MainActivity extends AppCompatActivity {
 
                     textView.setText("" + LocationUpdatesComponent.locations.size() + "\n"  + Arrays.toString(difs));
 
-                    locationMsg.setText("LAT :  " + obj.getLatitude() + "\nLNG : " + obj.getLongitude() + "\n\n" + obj.toString() + " \n\n\nLast updated- " + currentDateTimeString);
+                    locationMsg.setText("LAT :  " + loc.getLatitude() + "\nLNG : " + loc.getLongitude() + "\n\n" + loc.toString() + " \n\n\nLast updated- " + currentDateTimeString);
+
+                    onLocationChanged(loc);
                     break;
             }
         }
@@ -178,5 +191,42 @@ public class MainActivity extends AppCompatActivity {
             Log.e("ERROR", e.getMessage());
         }
         return "";
+    }
+
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
+    public void onLocationChanged(Location location) {
+        //Toast.makeText(this,"Location changed!",Toast.LENGTH_SHORT).show();
+        if (location == null){
+            Log.d(TAG, "location is null!");
+            return;
+
+        }
+
+        RoutePoint rp = new RoutePoint(
+                round(location.getLatitude(),6),
+                round(location.getLongitude(),6),
+                location.getTime());
+        rp.nrOfPoints = LocationUpdatesComponent.locations.size();//getNrofPoints();
+        Gson gson = new Gson();
+        String json = gson.toJson(rp);
+        String url = "javascript:onLocationChanged(" + json + ")";
+        //Toast.makeText(this,url,Toast.LENGTH_SHORT).show();
+        webview1.loadUrl(url);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        String intentName = ".LocationUpdatesService";
+        Intent i=new Intent(intentName);
+        this.stopService(i);
     }
 }

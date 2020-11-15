@@ -23,7 +23,7 @@
         </activity>
         <service
             android:name=".LocationUpdatesService"
-            android:label="My Job Service Update "
+            android:label="Job Service Update"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
     </application>

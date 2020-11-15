@@ -13,7 +13,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|top|center_vertical"
         android:gravity="center"
-        android:text="Hello World!" />
+        android:onClick="clickTextView"
+        android:text="Hello World!"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/textView2"
@@ -21,14 +23,22 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:gravity="center"
-        android:text="Hello World!" />
+        android:onClick="clickTextView"
+        android:text="Hello World!"
+        android:visibility="gone"
+        tools:visibility="gone" />
+
     <WebView
         android:id="@+id/webview1"
-        android:layout_width="match_parent"
+        style="@android:style/Widget.Material.Light.WebView"
 
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#FFFFFF"
-        android:backgroundTint="#EFCFCF" />
+        android:background="#FFFF00"
+        android:backgroundTint="#EFCFCF"
+        android:tooltipText="hoi"
+        android:visibility="visible"
+        tools:visibility="visible" />
 
 </android.widget.LinearLayout>
