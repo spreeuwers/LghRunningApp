@@ -13,8 +13,14 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
+import android.view.View;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.lang.reflect.Method;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -30,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView locationMsg;
     private TextView textView;
+    private WebView webview1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +51,23 @@ public class MainActivity extends AppCompatActivity {
 
 
         requestPermissions();
+
+        webview1 = findViewById(R.id.webview1);
+        webview1.setWebViewClient(new WebViewClient1());
+        webview1.setWebChromeClient(new WebChromeClient1());
+        WebSettings webSettings = webview1.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.supportMultipleWindows();
+        webSettings.setAllowContentAccess(true);
+        webSettings.setDomStorageEnabled(true);
+        webview1.clearCache(true);
+        webview1.loadUrl("https://loopgroephouten.nl/lghrun");
+
+        //actIntent = new Intent(this, Activity2.class);
+        //ApplicationClass.context = this;
+
+        webview1.addJavascriptInterface(this, "Android");
+
 
     }
 
@@ -129,5 +153,30 @@ public class MainActivity extends AppCompatActivity {
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     REQUEST_PERMISSIONS_REQUEST_CODE);
         }
+    }
+
+    @JavascriptInterface
+    public void showToast(String toast) {
+        Toast.makeText(this, toast, Toast.LENGTH_SHORT).show();
+    }
+
+    @JavascriptInterface
+    public String invoke(String command) {
+        try {
+            String[] parts = command.split("\\s+");
+            //first part is the method name
+            //following parts must be string params
+            Method method = this.getClass().getMethod(parts[0]);
+            String[] args = new String[parts.length-1];
+            for (int i=1; i < parts.length; i++)
+                args[i] = parts[i];
+
+            //always returns a string
+            return "" + method.invoke(this, (Object[]) args);
+
+        } catch (Exception e){
+            Log.e("ERROR", e.getMessage());
+        }
+        return "";
     }
 }
