@@ -83,13 +83,6 @@ public class LocationUpdatesService extends JobService implements LocationUpdate
         else
             startForeground(1, new Notification());
 
-//        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
-//        .setContentTitle("GPS")
-//        .setContentText("bg gps subscription running ");
-//        Notification notification = builder.build();
-//
-//
-//        startForeground(NOTIFICATION_ID, notification);
         return START_STICKY;
     }
 
@@ -106,7 +99,7 @@ public class LocationUpdatesService extends JobService implements LocationUpdate
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
         Notification notification = notificationBuilder.setOngoing(true)
                 //.setSmallIcon(R.drawable.icon_1)
-                .setContentTitle("App is running in background")
+                .setContentTitle("LGHRunningApp is watching GPS")
                 .setPriority(NotificationManager.IMPORTANCE_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build();

@@ -5,9 +5,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -61,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
         mHandler = new IncomingMessageHandler();
 
-
+        checkGPSEnabled();
         requestPermissions();
 
         webview1 = findViewById(R.id.webview1);
@@ -81,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
         webview1.addJavascriptInterface(this, "Android");
     }
 
-    public void clickTextView(View v){
+    public void clickTextView(View v) {
         v.setVisibility(View.INVISIBLE);
     }
 
@@ -124,21 +127,21 @@ public class MainActivity extends AppCompatActivity {
                     String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
 
                     Object[] timestamps = LocationUpdatesComponent.timestamps.toArray();
-                    for (int i = 0; i < timestamps.length-1; i++){
-                        long t2 = (long)timestamps[i+1];
-                        long t1 = (long)timestamps[i];
+                    for (int i = 0; i < timestamps.length - 1; i++) {
+                        long t2 = (long) timestamps[i + 1];
+                        long t1 = (long) timestamps[i];
                         timestamps[i] = t2 - t1;
                     }
-                    Long[] difs = {0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L,0L};
-                    for (int i = 0; i < difs.length-1; i++){
-                        int x = timestamps.length -i -1;
+                    Long[] difs = {0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L};
+                    for (int i = 0; i < difs.length - 1; i++) {
+                        int x = timestamps.length - i - 1;
                         if (x < 0) break;
                         difs[i] = (long) timestamps[x];
 
                     }
 
 
-                    textView.setText("" + LocationUpdatesComponent.size() + "\n"  + Arrays.toString(difs));
+                    textView.setText("" + LocationUpdatesComponent.size() + "\n" + Arrays.toString(difs));
 
                     locationMsg.setText("LAT :  " + loc.getLatitude() + "\nLNG : " + loc.getLongitude() + "\n\n" + loc.toString() + " \n\n\nLast updated- " + currentDateTimeString);
                     if (MainActivity.RUNNING == activityState) {
@@ -172,6 +175,40 @@ public class MainActivity extends AppCompatActivity {
                     REQUEST_PERMISSIONS_REQUEST_CODE);
         }
     }
+
+
+    private void checkGPSEnabled() {
+       LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+       if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            Toast.makeText(this, "GPS is Enabled in your devide", Toast.LENGTH_SHORT).show();
+        } else {
+            showGPSDisabledAlertToUser();
+
+        }
+
+    }
+    private void showGPSDisabledAlertToUser(){
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setMessage("GPS is disabled in your device. Would you like to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Goto Settings Page To Enable GPS",
+                        new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int id){
+                                Intent callGPSSettingIntent = new Intent(
+                                        android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                                startActivity(callGPSSettingIntent);
+                            }
+                        });
+        alertDialogBuilder.setNegativeButton("Cancel",
+                new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int id){
+                        dialog.cancel();
+                    }
+                });
+        AlertDialog alert = alertDialogBuilder.create();
+        alert.show();
+    }
+
 
     @JavascriptInterface
     public void showToast(String toast) {
@@ -265,6 +302,9 @@ public class MainActivity extends AppCompatActivity {
         String result = LocationUpdatesComponent.getRouteJson();
         return result;
     }
+
+
+
 
    public void exit(){
         finish();
