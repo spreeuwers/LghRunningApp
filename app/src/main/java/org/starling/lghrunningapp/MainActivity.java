@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -191,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         alertDialogBuilder.setMessage("GPS is disabled in your device. Would you like to enable it?")
                 .setCancelable(false)
-                .setPositiveButton("Goto Settings Page To Enable GPS",
+                .setPositiveButton("Enable GPS",
                         new DialogInterface.OnClickListener(){
                             public void onClick(DialogInterface dialog, int id){
                                 Intent callGPSSettingIntent = new Intent(
@@ -218,13 +219,24 @@ public class MainActivity extends AppCompatActivity {
     @JavascriptInterface
     public String invoke(String command) {
         try {
+            Log.e(TAG,"invoke:"  + command);
             String[] parts = command.split("\\s+");
+            String methodName = parts[0];
             //first part is the method name
             //following parts must be string params
-            Method method = this.getClass().getMethod(parts[0]);
+            Method method = null;
+
+            Method[] methods = this.getClass().getDeclaredMethods();
+            for (int i=0; i < methods.length; i++){
+               if (methods[i].getName().equals(methodName)){
+                   method = methods[i];
+                   break;
+               }
+            }
+            // Method method = this.getClass().getMethod(parts[0]);
             String[] args = new String[parts.length-1];
             for (int i=1; i < parts.length; i++)
-                args[i] = parts[i];
+                args[i-1] = parts[i];
 
             //always returns a string
             return "" + method.invoke(this, (Object[]) args);
@@ -303,7 +315,18 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
-
+   public String email(String recipient, String subject, String body){
+        try {
+            Log.e(TAG, "email:" + subject + " " + body);
+            Intent emailIntent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", recipient, null));
+            emailIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+            emailIntent.putExtra(Intent.EXTRA_TEXT, body);
+            startActivity(Intent.createChooser(emailIntent, "Send as email"));
+            return "ok";
+        } catch(Exception e){
+            return e.getMessage();
+        }
+   }
 
 
    public void exit(){
