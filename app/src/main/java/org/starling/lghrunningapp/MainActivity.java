@@ -19,6 +19,10 @@ import android.os.Messenger;
 import android.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
+import android.webkit.ServiceWorkerClient;
+import android.webkit.ServiceWorkerController;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.TextView;
@@ -67,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
 
         checkGPSEnabled();
         requestPermissions();
-
+        addServiceWorkerSupport();
         webview1 = findViewById(R.id.webview1);
         webview1.setWebViewClient(new WebViewClient1());
         webview1.setWebChromeClient(new WebChromeClient1());
@@ -83,6 +87,21 @@ public class MainActivity extends AppCompatActivity {
         //ApplicationClass.context = this;
 
         webview1.addJavascriptInterface(this, "Android");
+    }
+
+    private void addServiceWorkerSupport(){
+        ServiceWorkerController swController = ServiceWorkerController.getInstance();
+        swController.setServiceWorkerClient(new ServiceWorkerClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                Log.e(TAG, "in service worker. isMainFrame:"+request.isForMainFrame() +": " + request.getUrl());
+                return null;
+            }
+        });
+        swController.getServiceWorkerWebSettings().setAllowContentAccess(true);
+
+
+
     }
 
     public void clickTextView(View v) {
