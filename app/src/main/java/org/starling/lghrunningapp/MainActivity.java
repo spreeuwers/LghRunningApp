@@ -6,6 +6,7 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -30,6 +31,8 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -54,6 +57,11 @@ public class MainActivity extends AppCompatActivity {
     private WebView webview1;
 
     private int activityState;
+    private static Context mContext;
+
+    public static Context getInstance() {
+        return mContext;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,8 +78,9 @@ public class MainActivity extends AppCompatActivity {
         mHandler = new IncomingMessageHandler();
 
         checkGPSEnabled();
-        requestPermissions();
+
         addServiceWorkerSupport();
+
         webview1 = findViewById(R.id.webview1);
         webview1.setWebViewClient(new WebViewClient1());
         webview1.setWebChromeClient(new WebChromeClient1());
@@ -81,27 +90,19 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setAllowContentAccess(true);
         webSettings.setDomStorageEnabled(true);
         webview1.clearCache(true);
-        webview1.loadUrl("https://loopgroephouten.nl/lghrun");
-
-        //actIntent = new Intent(this, Activity2.class);
-        //ApplicationClass.context = this;
+        webview1.setWebContentsDebuggingEnabled(true);
 
         webview1.addJavascriptInterface(this, "Android");
+        webview1.loadUrl("https://loopgroephouten.nl/lghrun");
+        MainActivity.mContext = this;
     }
 
-    private void addServiceWorkerSupport(){
+
+    private void addServiceWorkerSupport() {
         ServiceWorkerController swController = ServiceWorkerController.getInstance();
-        swController.setServiceWorkerClient(new ServiceWorkerClient() {
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
-                Log.e(TAG, "in service worker. isMainFrame:"+request.isForMainFrame() +": " + request.getUrl());
-                return null;
-            }
-        });
+        ServiceWorkerClient swc1 = new ServiceWorkerClient1();
+        swController.setServiceWorkerClient(swc1);
         swController.getServiceWorkerWebSettings().setAllowContentAccess(true);
-
-
-
     }
 
     public void clickTextView(View v) {
@@ -198,8 +199,8 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void checkGPSEnabled() {
-       LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-       if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(this, "GPS is Enabled in your devide", Toast.LENGTH_SHORT).show();
         } else {
             showGPSDisabledAlertToUser();
@@ -207,21 +208,22 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-    private void showGPSDisabledAlertToUser(){
+
+    private void showGPSDisabledAlertToUser() {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         alertDialogBuilder.setMessage("GPS is disabled in your device. Would you like to enable it?")
                 .setCancelable(false)
                 .setPositiveButton("Enable GPS",
-                        new DialogInterface.OnClickListener(){
-                            public void onClick(DialogInterface dialog, int id){
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
                                 Intent callGPSSettingIntent = new Intent(
                                         android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                                 startActivity(callGPSSettingIntent);
                             }
                         });
         alertDialogBuilder.setNegativeButton("Cancel",
-                new DialogInterface.OnClickListener(){
-                    public void onClick(DialogInterface dialog, int id){
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
                         dialog.cancel();
                     }
                 });
@@ -238,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
     @JavascriptInterface
     public String invoke(String command) {
         try {
-            Log.e(TAG,"invoke:"  + command);
+            Log.e(TAG, "invoke:" + command);
             String[] parts = command.split("\\s+");
             String methodName = parts[0];
             //first part is the method name
@@ -246,21 +248,21 @@ public class MainActivity extends AppCompatActivity {
             Method method = null;
 
             Method[] methods = this.getClass().getDeclaredMethods();
-            for (int i=0; i < methods.length; i++){
-               if (methods[i].getName().equals(methodName)){
-                   method = methods[i];
-                   break;
-               }
+            for (int i = 0; i < methods.length; i++) {
+                if (methods[i].getName().equals(methodName)) {
+                    method = methods[i];
+                    break;
+                }
             }
             // Method method = this.getClass().getMethod(parts[0]);
-            String[] args = new String[parts.length-1];
-            for (int i=1; i < parts.length; i++)
-                args[i-1] = parts[i];
+            String[] args = new String[parts.length - 1];
+            for (int i = 1; i < parts.length; i++)
+                args[i - 1] = parts[i];
 
             //always returns a string
             return "" + method.invoke(this, (Object[]) args);
 
-        } catch (Exception e){
+        } catch (Exception e) {
             Log.e("ERROR", e.getMessage());
         }
         return "";
@@ -277,30 +279,42 @@ public class MainActivity extends AppCompatActivity {
 
     public void onLocationChanged(Location location) {
         //Toast.makeText(this,"Location changed!",Toast.LENGTH_SHORT).show();
-        if (location == null){
+        if (location == null) {
             Log.d(TAG, "location is null!");
             return;
 
         }
-
-        RoutePoint rp = new RoutePoint(
-                round(location.getLatitude(),6),
-                round(location.getLongitude(),6),
-                location.getTime(), location.getSpeed());
-        rp.nrOfPoints = LocationUpdatesComponent.size();//getNrofPoints();
-        Gson gson = new Gson();
-        String json = gson.toJson(rp);
-        String url = "javascript:onLocationChanged(" + json + ")";
-        //Toast.makeText(this,url,Toast.LENGTH_SHORT).show();
-        webview1.loadUrl(url);
+        try {
+            RoutePoint rp = new RoutePoint(
+                    round(location.getLatitude(), 6),
+                    round(location.getLongitude(), 6),
+                    location.getTime(), location.getSpeed(), location.getAccuracy());
+            rp.nrOfPoints = LocationUpdatesComponent.size();//getNrofPoints();
+            Gson gson = new Gson();
+            String json = gson.toJson(rp);
+            String url = "javascript:onLocationChanged(" + json + ")";
+            //Toast.makeText(this,url,Toast.LENGTH_SHORT).show();
+            //webview1.loadUrl(url);
+        } catch (Exception e) {
+            Log.d(TAG, "location could not be send to webview!");
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        String intentName = ".LocationUpdatesService";
-        Intent i=new Intent(intentName);
-        this.stopService(i);
+        stopGeoService();
+    }
+
+    private void stopGeoService() {
+        try {
+            String intentName = "org.starling.lghrunningapp.LocationUpdatesService";
+            //Intent i = new Intent(intentName);
+            Intent i = new Intent(this.getApplicationContext(), LocationUpdatesService.class);
+            this.stopService(i);
+        } catch (Exception e) {
+            Log.e(TAG, "stopGeoService failed :" + e);
+        }
     }
 
     private void toast(String s) {
@@ -308,47 +322,71 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void start(){
+    public void start() {
         activityState = MainActivity.RUNNING;
         LocationUpdatesComponent.reset();
         toast("started");
+        requestPermissions();
     }
 
-    public void stop(){
+    public void stop() {
         toast("stopped");
         activityState = MainActivity.STOPPED;
+        stopGeoService();
     }
 
-    public void pause(){
+    public void pause() {
         toast("paused");
         activityState = MainActivity.PAUSED;
     }
 
-    public void reload(){
+    public void reload() {
         webview1.clearCache(true);
-        webview1.loadUrl("https://loopgroephouten.nl/lghrun");
-   }
+        webview1.loadUrl("https://loopgroephouten.nl/pwa/index2.html");
+    }
 
-   public String getRouteJson(){
-        String result = LocationUpdatesComponent.getRouteJson();
+    public String getRouteJson() {
+        String result = "";
+        try {
+            result = LocationUpdatesComponent.getRouteJson();
+        } catch (Exception e) {
+            Log.e(TAG, "getRouteJson failed :" + e);
+        }
         return result;
     }
 
-   public String email(String recipient, String subject, String body){
+    public String getPositionJson() {
+        String result = "";
         try {
-            Log.e(TAG, "email:" + subject + " " + body);
+            result = LocationUpdatesComponent.getRoutePointJson();
+        } catch (Exception e) {
+            Log.e(TAG, "getPositionJson failed :" + e);
+        }
+        return result;
+    }
+
+    public String email(String recipient, String subject, String body) {
+        try {
+            Log.d(TAG, "email:" + subject + " " + body);
             Intent emailIntent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", recipient, null));
             emailIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
             emailIntent.putExtra(Intent.EXTRA_TEXT, body);
             startActivity(Intent.createChooser(emailIntent, "Send as email"));
             return "ok";
-        } catch(Exception e){
+        } catch (Exception e) {
             return e.getMessage();
         }
-   }
+    }
+
+    public void config() {
+        final Intent intent = new Intent(this, SettingsActivity.class);
+        this.startActivity(intent);
+    }
 
 
-   public void exit(){
+
+    public void exit() {
+        stopGeoService();
         finish();
-   }
+    }
 }

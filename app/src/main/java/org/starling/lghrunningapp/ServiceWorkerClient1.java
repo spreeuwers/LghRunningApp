@@ -1,19 +1,14 @@
 package org.starling.lghrunningapp;
 
 import android.content.Context;
-import android.net.ConnectivityManager;
 import android.util.Log;
-import android.webkit.WebResourceError;
+import android.webkit.ServiceWorkerClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -21,55 +16,44 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 
-public class WebViewClient1 extends WebViewClient {
+public class ServiceWorkerClient1 extends ServiceWorkerClient {
 
-    public static final String TAG = WebViewClient1.class.getCanonicalName();
-
-    public boolean checkInternetConnection(Context context) {
-
-        ConnectivityManager con_manager = (ConnectivityManager)
-                context.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        return (con_manager.getActiveNetworkInfo() != null
-                && con_manager.getActiveNetworkInfo().isAvailable()
-                && con_manager.getActiveNetworkInfo().isConnected());
-    }
-
+    public static final String TAG = ServiceWorkerClient1.class.getCanonicalName();
     @Override
-    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-        boolean connected = checkInternetConnection(view.getContext());
-        return super.shouldOverrideUrlLoading(view, request);
-//        if (!connected) {
-//            view.loadUrl("file:///android_asset/filename.html");
-//        } else {
-//            view.loadUrl(url);
-//        }
-//        return true;
-//    }
-    }
-
-    @Override
-    public WebResourceResponse shouldInterceptRequest (WebView view, WebResourceRequest request){
-        Log.e(TAG, "in webview client. isMainFrame:" + request.isForMainFrame() + ": " + request.getUrl());
-        WebResourceResponse wrr = super.shouldInterceptRequest(view, request);
-        String path = request.getUrl().getPath();
-
-//        if (wrr == null && path.toLowerCase().endsWith(".js")){
-//            String text = readFromFile(view.getContext(),request.getUrl().getPath() );
+    public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+        Log.e(TAG, "in service worker. isMainFrame:" + request.isForMainFrame() +": " + request.getUrl());
+        WebResourceResponse wrr = super.shouldInterceptRequest(request);
+//        if (wrr == null){
 //            String offLinePage = "offline";
-//            InputStream data = new ByteArrayInputStream(text.getBytes());
+//            InputStream data = new ByteArrayInputStream(offLinePage.getBytes());
 //            wrr = new WebResourceResponse("text/html","utf8", data);
 //        }
-//
-//        if (request.getMethod().equals("GET") && path.toLowerCase().endsWith(".js")){
-//            File f = new File(request.getUrl().getPath()) ;
-//            FileOutputStream fos = null;
-//            String text = getStringFromInputStream(wrr.getData());
-//            writeToFile(text,  view.getContext());
+
+        String path = request.getUrl().getPath();
+
+//        if (wrr == null && path.toLowerCase().endsWith(".jsx")){
+//            try {
+//                String text = readFromFile(MainActivity.getInstance(), request.getUrl().getPath());
+//                String offLinePage = "offline";
+//                InputStream data = new ByteArrayInputStream(text.getBytes());
+//                wrr = new WebResourceResponse("text/html", "utf8", data);
+//            } catch (Exception e){
+//                Log.e(TAG, e.getMessage());
+//            }
 //        }
+//
+        if (request.getMethod().equals("GET") && path.toLowerCase().endsWith(".js")){
+            try {
+                File f = new File(request.getUrl().getPath()) ;
+                FileOutputStream fos = null;
+                String text = getStringFromInputStream(wrr.getData());
+                writeToFile(text,  MainActivity.getInstance());
+            } catch (Exception e){
+                Log.e(TAG, e.getMessage());
+            }
+        }
 
         return wrr;
-
     }
 
     private void writeToFile(String data, Context context) {
@@ -141,8 +125,5 @@ public class WebViewClient1 extends WebViewClient {
         return sb.toString();
     }
 
-    @Override
-    public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-        super.onReceivedError(view, request, error);
-    }
+
 }

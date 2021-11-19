@@ -83,10 +83,21 @@ public class LocationUpdatesComponent {
         RoutePoint[] routePoints = new RoutePoint[locations.size()];
         for (int i = 0; i < locations.size(); i++) {
             Location l = locations.get(i);
-            routePoints[i] = new RoutePoint(l.getLatitude(), l.getLongitude(), l.getTime(),l.getSpeed());
+            routePoints[i] = new RoutePoint(l.getLatitude(), l.getLongitude(), l.getTime(),l.getSpeed(), l.getAccuracy());
         }
         Gson gson = new Gson();
         String json = gson.toJson(routePoints);
+        return json;
+    }
+
+    public static String getRoutePointJson(){
+        String json = "null";
+        if (locations.size() > 0) {
+            Location l = locations.get(locations.size() - 1);
+            RoutePoint routePoint = new RoutePoint(l.getLatitude(), l.getLongitude(), l.getTime(), l.getSpeed(), l.getAccuracy());
+            Gson gson = new Gson();
+            json = gson.toJson(routePoint);
+        }
         return json;
     }
 
