@@ -326,6 +326,7 @@ public class MainActivity extends AppCompatActivity {
         activityState = MainActivity.RUNNING;
         LocationUpdatesComponent.reset();
         toast("started");
+        //requestPermissions also starts the service
         requestPermissions();
     }
 
