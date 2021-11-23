@@ -39,6 +39,23 @@ import java.math.RoundingMode;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+class Callback {
+    int id;
+    String intentName;
+    String jsFnName;
+    String resultKey;
+    String intentError = "";
+
+    Callback(int id, String intentName, String resultKey, String jsFnName){
+        this.id = id;
+        this.intentName = intentName;
+        this.jsFnName = jsFnName;
+        this.resultKey = resultKey;
+    }
+}
 
 public class MainActivity extends AppCompatActivity {
 
@@ -50,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int STOPPED = 0;
     private static final int PAUSED = 2;
     private IncomingMessageHandler mHandler;
-
+    Map<Integer, Callback> callbackMap = new HashMap<Integer, Callback>();
 
     private TextView locationMsg;
     private TextView textView;
@@ -58,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
     private int activityState;
     private static Context mContext;
+    private String string;
 
     public static Context getInstance() {
         return mContext;
@@ -384,7 +402,37 @@ public class MainActivity extends AppCompatActivity {
         this.startActivity(intent);
     }
 
+    public void doIntent(String intentName, String resultKey, String callbackName) {
+        final Intent intent = new Intent(intentName);
+        int requestId = callbackMap.size();
+        Callback callback = new Callback(requestId, intentName, resultKey, callbackName );
+        callbackMap.put(requestId, callback);
+        try {
+            this.startActivityForResult(intent, requestId);
+        } catch(Exception e){
+            callback.intentError = e.getMessage();
+        }
+   }
+    //Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+    //startActivityForResult(intent, 0);
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult( requestCode,  resultCode,  data);
+        Callback callback = callbackMap.get(requestCode);
+        String result = callback.intentError;
+        try {
+            if (this.RESULT_OK == resultCode) {
+                Bundle extras = data.getExtras();
+                result = extras.getString(callback.resultKey);
+            }
+        } catch (Exception e){
+            result = e.getMessage();
+        }
+        result = "'" +  result.replaceAll("/'/g","`").replaceAll("/\"/g","`") + "'";
+        String url = "javascript:" + callback.jsFnName +  "(" + result + ")";
+        webview1.loadUrl(url);
+    }
 
     public void exit() {
         stopGeoService();
